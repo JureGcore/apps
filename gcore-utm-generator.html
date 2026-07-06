@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gcore UTM Generator</title>
+<style>
+  :root{
+    --panel:#ffffff;
+    --panel-2:#f6f7f9;
+    --border:#e6e7eb;
+    --text:#1c1f26;
+    --muted:#767c8c;
+    --accent:#ff6a1a;
+    --accent-2:#ff8a3d;
+    --accent-dark:#e2540a;
+    --error:#dc2626;
+    --success:#16a34a;
+    --mono: "SF Mono", "Consolas", "Menlo", monospace;
+  }
+  *{box-sizing:border-box;}
+  html, body{min-height:100%;}
+  body{
+    margin:0;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background-color:#F8F6F4;
+    color:var(--text);
+    padding:32px 20px 80px;
+  }
+  .bg-layer{
+    position:fixed;
+    top:0; left:0;
+    width:100%; height:100%;
+    z-index:-1;
+    overflow:hidden;
+  }
+  .bg-layer svg{
+    width:100%;
+    height:100%;
+  }
+  .wrap{max-width:1160px;margin:0 auto;position:relative;z-index:1;}
+  header{margin-bottom:28px;}
+  header h1{font-size:24px;margin:0 0 4px;font-weight:700;color:var(--text);}
+  header p{margin:0;color:var(--muted);font-size:13.5px;}
+  .grid{
+    display:grid;
+    grid-template-columns: 1.15fr 0.85fr;
+    gap:20px;
+    align-items:start;
+  }
+  @media (max-width: 880px){ .grid{grid-template-columns:1fr;} }
+  .group-heading{
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    color:var(--accent-dark);
+    font-weight:700;
+    margin:22px 0 10px;
+  }
+  .group-heading:first-child{margin-top:0;}
+  .panel{
+    background:var(--panel);
+    border:1px solid rgba(0,0,0,0.04);
+    border-radius:14px;
+    padding:18px 20px;
+    box-shadow:0 8px 24px rgba(120,40,0,0.14);
+  }
+  .panel + .panel{margin-top:14px;}
+  .section-title{
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+    color:var(--accent-dark);
+    font-weight:700;
+    margin:0 0 14px;
+  }
+  label{
+    display:flex;
+    align-items:baseline;
+    gap:6px;
+    font-size:16px;
+    font-weight:700;
+    margin-bottom:6px;
+    color:var(--text);
+  }
+  label .req{color:var(--error);font-weight:700;}
+  label .opt{color:var(--muted);font-weight:400;font-size:11.5px;}
+  .hint{color:var(--muted);font-size:14px;margin:2px 0 8px;line-height:1.4;}
+  select, input[type=text], input[type=url], textarea{
+    width:100%;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:9px 10px;
+    border-radius:8px;
+    font-size:13.5px;
+    outline:none;
+    font-family:inherit;
+  }
+  textarea{resize:vertical;min-height:64px;line-height:1.4;}
+  select:focus, input:focus, textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(255,106,26,0.12);}
+  select.invalid, input.invalid{border-color:var(--error);}
+  input.has-value, textarea.has-value, select.has-value{color:var(--accent);font-weight:700;}
+  .smart-fill-feedback{display:block;color:var(--muted);font-size:12px;margin-top:8px;}
+  .smart-fill-feedback.ok{color:var(--success);}
+  details.smart-fill{margin:22px 0 0;}
+  details.smart-fill:first-child{margin-top:0;}
+  details.smart-fill summary{
+    cursor:pointer;
+    font-size:12px;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+    color:var(--accent-dark);
+    font-weight:700;
+    list-style:none;
+    padding:2px 0 10px;
+  }
+  details.smart-fill summary::-webkit-details-marker{display:none;}
+  details.smart-fill summary::before{content:"▸ ";}
+  details.smart-fill[open] summary::before{content:"▾ ";}
+  .smart-fill-panel{margin-top:0;}
+  .custom-input{margin-top:8px;display:none;}
+  .custom-input.show{display:block;}
+  .icon-select{position:relative;}
+  .icon-select-trigger{
+    width:100%;
+    display:flex;
+    align-items:center;
+    gap:10px;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:7px 10px;
+    border-radius:8px;
+    font-size:13.5px;
+    outline:none;
+    font-family:inherit;
+    cursor:pointer;
+    text-align:left;
+  }
+  .icon-select-trigger:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(255,106,26,0.12);}
+  .icon-select-trigger.placeholder .icon-select-label{color:var(--muted);}
+  .icon-select-trigger:not(.placeholder) .icon-select-label{color:var(--accent);font-weight:700;}
+  .icon-select-label{flex:1;}
+  .icon-select-caret{color:var(--muted);font-size:10px;margin-left:2px;}
+  .icon-select-icon{width:22px;height:22px;flex:0 0 22px;border-radius:50%;overflow:hidden;display:flex;}
+  .icon-select-icon svg{width:100%;height:100%;display:block;}
+  .icon-select-menu{
+    position:absolute;
+    top:calc(100% + 6px);
+    left:0; right:0;
+    background:#fff;
+    border:1px solid var(--border);
+    border-radius:10px;
+    box-shadow:0 14px 32px rgba(0,0,0,0.16);
+    max-height:280px;
+    overflow-y:auto;
+    z-index:30;
+    display:none;
+    padding:6px;
+  }
+  .icon-select-menu.open{display:block;}
+  .icon-select-option{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    padding:7px 9px;
+    border-radius:8px;
+    cursor:pointer;
+    font-size:13.5px;
+    color:var(--text);
+  }
+  .icon-select-option .icon-select-icon{width:20px;height:20px;flex:0 0 20px;}
+  .icon-select-option:hover{background:var(--panel-2);}
+  .icon-select-option.is-custom{border-top:1px solid var(--border);margin-top:4px;padding-top:9px;}
+  .errors{
+    background:rgba(220,38,38,0.06);
+    border:1px solid rgba(220,38,38,0.25);
+    border-radius:8px;
+    padding:10px 12px;
+    margin-bottom:16px;
+    font-size:12.5px;
+    color:var(--error);
+  }
+  .errors ul{margin:4px 0 0;padding-left:18px;}
+  .url-box{
+    background-color:#1E1224;
+    background-image:url("data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTMxNCIgaGVpZ2h0PSI2MzYiIHZpZXdCb3g9IjAgMCAxMzE0IDYzNiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjEzMTQiIGhlaWdodD0iNjM2IiBmaWxsPSIjMUUxMjI0Ii8+CjxyZWN0IHdpZHRoPSIxMzE0IiBoZWlnaHQ9IjYzNiIgZmlsbD0idXJsKCNwYWludDBfcmFkaWFsXzIzMDFfMzg1NCkiLz4KPGRlZnM+CjxyYWRpYWxHcmFkaWVudCBpZD0icGFpbnQwX3JhZGlhbF8yMzAxXzM4NTQiIGN4PSIwIiBjeT0iMCIgcj0iMSIgZ3JhZGllbnRVbml0cz0idXNlclNwYWNlT25Vc2UiIGdyYWRpZW50VHJhbnNmb3JtPSJ0cmFuc2xhdGUoNjU3IDYzNikgcm90YXRlKC05MCkgc2NhbGUoMzE2LjI4MSA2NTMuNDQ5KSI+CjxzdG9wIHN0b3AtY29sb3I9IiNBODgyRkYiIHN0b3Atb3BhY2l0eT0iMC4xOCIvPgo8c3RvcCBvZmZzZXQ9IjEiIHN0b3AtY29sb3I9IiNBODgyRkYiIHN0b3Atb3BhY2l0eT0iMCIvPgo8L3JhZGlhbEdyYWRpZW50Pgo8L2RlZnM+Cjwvc3ZnPgo=");
+    background-size:cover;
+    background-position:center;
+    border:1px solid rgba(255,255,255,0.08);
+    border-radius:10px;
+    padding:14px;
+    font-family:var(--mono);
+    font-size:12.5px;
+    word-break:break-all;
+    line-height:1.6;
+    min-height:20px;
+  }
+  .url-base{color:#ffffff;}
+  .url-key{color:#1A9E7E;font-weight:600;}
+  .url-val{color:#FF4C00;font-weight:600;}
+  .url-placeholder{color:#ffffff;}
+  .actions{display:flex;gap:10px;margin-top:12px;align-items:center;}
+  button{
+    border:none;
+    border-radius:8px;
+    padding:9px 16px;
+    font-size:13px;
+    font-weight:700;
+    cursor:pointer;
+    font-family:inherit;
+  }
+  .btn-primary{background:var(--accent);color:#fff;}
+  .btn-primary:hover{background:var(--accent-dark);}
+  .btn-primary:disabled{background:#e5e5ea;color:var(--muted);cursor:not-allowed;}
+  .btn-secondary{background:#fff;border:1px solid var(--border);color:var(--text);}
+  .btn-secondary:hover{border-color:var(--accent);color:var(--accent-dark);}
+  .copy-feedback{font-size:12px;color:var(--success);font-weight:600;opacity:0;transition:opacity .15s;}
+  .copy-feedback.show{opacity:1;}
+  table.param-table{width:100%;border-collapse:collapse;margin-top:4px;font-size:12.5px;}
+  table.param-table th, table.param-table td{
+    text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);
+  }
+  table.param-table th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.04em;}
+  table.param-table td.k{color:var(--accent-dark);font-family:var(--mono);white-space:nowrap;font-weight:600;}
+  table.param-table td.v{font-family:var(--mono);word-break:break-all;}
+  .empty-note{color:var(--muted);font-size:12.5px;}
+</style>
+</head>
+<body>
+<div class="bg-layer" aria-hidden="true">
+<svg width="1920" height="1296" viewBox="0 0 1920 1296" preserveAspectRatio="xMidYMid slice" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_2299_3764)">
+<g clip-path="url(#clip1_2299_3764)">
+<path d="M2026.67 0H-106.666V1296H2026.67V0Z" fill="#F8F6F4"/>
+<path d="M1115.56 936C1483.75 936 1782.22 613.645 1782.22 216C1782.22 -181.645 1483.75 -504 1115.56 -504C747.366 -504 448.889 -181.645 448.889 216C448.889 613.645 747.366 936 1115.56 936Z" fill="url(#paint0_radial_2299_3764)"/>
+<path d="M1837.78 732C2156.88 732 2415.56 452.626 2415.56 108C2415.56 -236.626 2156.88 -516 1837.78 -516C1518.68 -516 1260 -236.626 1260 108C1260 452.626 1518.68 732 1837.78 732Z" fill="url(#paint1_radial_2299_3764)"/>
+<path d="M-51.1111 1224C329.352 1224 637.778 890.9 637.778 480C637.778 69.1002 329.352 -264 -51.1111 -264C-431.574 -264 -740 69.1002 -740 480C-740 890.9 -431.574 1224 -51.1111 1224Z" fill="url(#paint2_radial_2299_3764)"/>
+<path d="M1782.22 1920C2199.5 1920 2537.78 1554.66 2537.78 1104C2537.78 653.336 2199.5 288 1782.22 288C1364.94 288 1026.67 653.336 1026.67 1104C1026.67 1554.66 1364.94 1920 1782.22 1920Z" fill="url(#paint3_radial_2299_3764)"/>
+<path d="M93.3336 1872C436.977 1872 715.556 1571.14 715.556 1200C715.556 828.865 436.977 528 93.3336 528C-250.31 528 -528.889 828.865 -528.889 1200C-528.889 1571.14 -250.31 1872 93.3336 1872Z" fill="url(#paint4_radial_2299_3764)"/>
+<path d="M1560 1248C1854.55 1248 2093.33 990.116 2093.33 672C2093.33 353.884 1854.55 96 1560 96C1265.45 96 1026.67 353.884 1026.67 672C1026.67 990.116 1265.45 1248 1560 1248Z" fill="url(#paint5_radial_2299_3764)"/>
+<path d="M960 1320C1279.1 1320 1537.78 1040.63 1537.78 696C1537.78 351.374 1279.1 72 960 72C640.903 72 382.223 351.374 382.223 696C382.223 1040.63 640.903 1320 960 1320Z" fill="url(#paint6_radial_2299_3764)"/>
+</g>
+</g>
+<defs>
+<radialGradient id="paint0_radial_2299_3764" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1115.56 216) scale(666.667 720)">
+<stop stop-color="#FFB8A0" stop-opacity="0.3"/>
+<stop offset="1" stop-color="#FFB8A0" stop-opacity="0"/>
+</radialGradient>
+<radialGradient id="paint1_radial_2299_3764" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1837.78 108) scale(577.778 624)">
+<stop stop-color="#FFD0B0" stop-opacity="0.34"/>
+<stop offset="1" stop-color="#FFD0B0" stop-opacity="0"/>
+</radialGradient>
+<radialGradient id="paint2_radial_2299_3764" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(-51.1111 480) scale(688.889 744)">
+<stop stop-color="#F5E0D0" stop-opacity="0.34"/>
+<stop offset="1" stop-color="#F5E0D0" stop-opacity="0"/>
+</radialGradient>
+<radialGradient id="paint3_radial_2299_3764" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1782.22 1104) scale(755.556 816)">
+<stop stop-color="#FFCDA8" stop-opacity="0.32"/>
+<stop offset="1" stop-color="#FFCDA8" stop-opacity="0"/>
+</radialGradient>
+<radialGradient id="paint4_radial_2299_3764" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(93.3336 1200) scale(622.222 672)">
+<stop stop-color="#F0DCC8" stop-opacity="0.36"/>
+<stop offset="1" stop-color="#F0DCC8" stop-opacity="0"/>
+</radialGradient>
+<radialGradient id="paint5_radial_2299_3764" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(1560 672) scale(533.333 576)">
+<stop stop-color="#E6D4DC" stop-opacity="0.24"/>
+<stop offset="1" stop-color="#E6D4DC" stop-opacity="0"/>
+</radialGradient>
+<radialGradient id="paint6_radial_2299_3764" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(960 696) scale(577.778 624)">
+<stop stop-color="white" stop-opacity="0.85"/>
+<stop offset="1" stop-color="white" stop-opacity="0"/>
+</radialGradient>
+<clipPath id="clip0_2299_3764">
+<rect width="1920" height="1296" fill="white"/>
+</clipPath>
+<clipPath id="clip1_2299_3764">
+<rect width="1920" height="1296" fill="white"/>
+</clipPath>
+</defs>
+</svg>
+</div>
+<div class="wrap">
+  <header>
+    <h1>Gcore UTM Generator</h1>
+    <p>Build tracked links with Gcore's standard UTM and referral parameters. Values are automatically lowercased and cleaned.</p>
+  </header>
+
+  <div class="grid">
+    <!-- LEFT: FORM -->
+    <div>
+      <p class="group-heading">Destination</p>
+      <div class="panel">
+        <label for="destination_url">Destination URL <span class="req">*</span></label>
+        <div class="hint">Include the protocol (https://). Existing query parameters are preserved.</div>
+        <input type="url" id="destination_url" placeholder="https://gcore.com/cdn/">
+      </div>
+
+      <details class="smart-fill">
+        <summary>Describe your campaign — auto-fill the form</summary>
+        <div class="panel smart-fill-panel">
+          <label for="smartFillInput">What are you promoting? <span class="opt">optional</span></label>
+          <div class="hint">Channel, product, audience, region, and timing, in plain language. We match keywords to the fields below — check the results before copying.</div>
+          <textarea id="smartFillInput" rows="3" placeholder="e.g. Email campaign upselling our new WAAP feature to existing clients"></textarea>
+
+          <div style="margin-top:14px;">
+            <label for="smartFillPlacement">Where will the link be placed? <span class="opt">optional</span></label>
+            <div class="hint">The button, image, or link text, and roughly where it sits (e.g. "main CTA button at the bottom of the email").</div>
+            <textarea id="smartFillPlacement" rows="2" placeholder="e.g. Main CTA button at the bottom of the email"></textarea>
+          </div>
+
+          <div class="actions">
+            <button class="btn-primary" id="smartFillBtn" type="button">Fill form</button>
+          </div>
+          <span class="smart-fill-feedback" id="smartFillFeedback"></span>
+        </div>
+      </details>
+
+      <p class="group-heading">Core UTM parameters</p>
+
+      <div class="panel">
+        <label for="utm_source_trigger">utm_source <span class="req">*</span></label>
+        <div class="hint">Where the traffic comes from — the platform or publisher (e.g. google, linkedin, email).</div>
+        <div class="icon-select" id="utm_source_iconselect">
+          <button type="button" class="icon-select-trigger placeholder" id="utm_source_trigger">
+            <span class="icon-select-icon" id="utm_source_trigger_icon"></span>
+            <span class="icon-select-label" id="utm_source_trigger_label">Select source…</span>
+            <span class="icon-select-caret">▾</span>
+          </button>
+          <div class="icon-select-menu" id="utm_source_menu" role="listbox"></div>
+        </div>
+        <div class="custom-input" id="utm_source_custom_wrap">
+          <input type="text" id="utm_source_custom" placeholder="Custom source">
+        </div>
+      </div>
+
+      <div class="panel">
+        <label for="utm_medium">utm_medium <span class="req">*</span></label>
+        <div class="hint">The channel or activity type — how the traffic was driven (e.g. paid_social, newsletter, referral).</div>
+        <select id="utm_medium"></select>
+        <div class="custom-input" id="utm_medium_custom_wrap">
+          <input type="text" id="utm_medium_custom" placeholder="Custom medium">
+        </div>
+      </div>
+
+      <div class="panel">
+        <label for="utm_product">utm_product <span class="req">*</span></label>
+        <div class="hint">Gcore-custom field. Links the campaign to a specific product (p_ prefix), product group, brand/general topic, or industry (i_ prefix).</div>
+        <select id="utm_product"></select>
+        <div class="custom-input" id="utm_product_custom_wrap">
+          <input type="text" id="utm_product_custom" placeholder="Custom product value">
+        </div>
+      </div>
+
+      <div class="panel">
+        <label for="utm_campaign">utm_campaign <span class="req">*</span></label>
+        <div class="hint">The specific campaign, launch, event, offer, or flow. Written manually since names change often. Recommended format: product_or_topic + purpose + period.</div>
+        <input type="text" id="utm_campaign" placeholder="e.g. cdn_leads_q3_2026">
+      </div>
+
+      <div class="panel">
+        <label for="utm_region">utm_region <span class="opt">optional</span></label>
+        <div class="hint">Gcore-custom field. The target region or country — use a region for broad targeting, a country for a specific market, or global if not region-specific.</div>
+        <select id="utm_region"></select>
+        <div class="custom-input" id="utm_region_custom_wrap">
+          <input type="text" id="utm_region_custom" placeholder="Custom region">
+        </div>
+      </div>
+
+      <div class="panel">
+        <label for="utm_content">utm_content <span class="opt">optional</span></label>
+        <div class="hint">Which exact creative, CTA, or link was clicked (e.g. hero_cta, video_15s_v1) — useful when a campaign has multiple versions.</div>
+        <input type="text" id="utm_content" placeholder="e.g. hero_cta">
+      </div>
+
+      <div class="panel">
+        <label for="utm_term">utm_term <span class="opt">optional</span></label>
+        <div class="hint">The keyword, audience, targeting, or segment (e.g. 
